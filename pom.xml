@@ -11,6 +11,15 @@
 
   <build>
     <finalName>insured-assurance</finalName>
+    <plugins>
+     <plugin>
+       <artifactId>maven-war-plugin</artifactId>
+       <version>3.4.0</version>
+       <configuration>
+         <failOnMissingWebXml>false</failOnMissingWebXml>
+       </configuration>
+     </plugin>
+    </plugins>
   </build>
 
   <dependencies>
