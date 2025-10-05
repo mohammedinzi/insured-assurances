@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+
+# Variables (replace with parameters if using Jenkins parameters)
+S3_KEY=$S3_KEY
+TOMCAT_HOST=$TOMCAT_HOST
+TOMCAT_USER=tomcat
+TOMCAT_HOME=/home/tomcat
+TOMCAT_WEBAPPS=/opt/tomcat/webapps
+PRIVATE_KEY=/var/lib/jenkins/.ssh/tomcat_id_rsa
+
+# Download WAR from S3
+aws s3 cp s3://insured-assurance-artifacts/${S3_KEY} /tmp/app.war
+
+# Copy WAR to Tomcat via SSH
+scp -i $PRIVATE_KEY /tmp/app.war $TOMCAT_USER@$TOMCAT_HOST:$TOMCAT_WEBAPPS/ROOT.war
+
+# Restart Tomcat (via SSH)
+ssh -i $PRIVATE_KEY $TOMCAT_USER@$TOMCAT_HOST "sudo systemctl restart tomcat"
+
+echo "Deployment completed successfully!"

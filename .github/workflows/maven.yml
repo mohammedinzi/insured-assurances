@@ -1,0 +1,56 @@
+name: Java CI/CD to Tomcat
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  S3_BUCKET: insured-assurance-artifacts
+  JENKINS_URL: http://107.23.57.176:8080
+  JENKINS_USER: admin
+  JENKINS_TOKEN: ${{ secrets.JENKINS_TOKEN }}
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build with Maven
+        run: mvn clean install
+
+      - name: Package WAR
+        run: mvn package
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload WAR to S3
+        run: |
+          aws s3 cp target/*.war s3://${{ env.S3_BUCKET }}/
+
+      - name: Trigger Jenkins Job
+        uses: appleboy/jenkins-action@master
+        with:
+          url: ${{ env.JENKINS_URL }}
+          user: ${{ env.JENKINS_USER }}
+          token: ${{ env.JENKINS_TOKEN }}
+          job: InsuredAssuranceDeploy
+          parameters: "S3_KEY=target/yourapp.war TOMCAT_HOST=100.27.214.51"
