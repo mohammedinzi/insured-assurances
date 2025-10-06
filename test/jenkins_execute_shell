@@ -1,35 +1,32 @@
 #!/bin/bash
-set -euxo pipefail
+set -e
 
-# AWS credentials (injected securely from Jenkins credentials)
+# AWS credentials (from Jenkins secrets)
 export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
 
-# Tomcat / S3 config
-S3_KEY="insured-assurance.war"
-TOMCAT_HOST="100.27.214.51"
-TOMCAT_USER="tomcat"
-TOMCAT_WEBAPPS="/opt/tomcat/webapps"
-PRIVATE_KEY="/var/lib/jenkins/.ssh/tomcat_id_rsa"
+# Config
 S3_BUCKET="insured-assurance-artifacts"
+S3_KEY="insured-assurance.war"
+TOMCAT_USER="jenkins"
+TOMCAT_PASS="Jenkins@123"
+TOMCAT_HOST="34.207.115.103" # Public IP of Tomcat instance
+TOMCAT_PORT="8080"
 
-# Build WAR file
-echo "🚀 Building WAR file..."
-mvn clean package -DskipTests
+# Workspace
+cd $WORKSPACE
 
-# Upload WAR to S3
+echo "🧱 Building WAR package..."
+mvn clean package
+
 echo "☁️ Uploading WAR to S3..."
-aws s3 cp target/insured-assurance.war s3://$S3_BUCKET/$S3_KEY
+aws s3 cp target/insured-assurance.war s3://$S3_BUCKET/$S3_KEY --region $AWS_DEFAULT_REGION
 
-# Deploy WAR to Tomcat
-echo "📦 Deploying WAR to Tomcat server..."
-scp -o StrictHostKeyChecking=no -i $PRIVATE_KEY target/insured-assurance.war \
-    $TOMCAT_USER@$TOMCAT_HOST:$TOMCAT_WEBAPPS/ROOT.war
+echo "⬇️ Downloading WAR locally (to simulate deploy artifact)"
+aws s3 cp s3://$S3_BUCKET/$S3_KEY ./insured-assurance.war --region $AWS_DEFAULT_REGION
 
-# Restart Tomcat
-echo "🔁 Restarting Tomcat..."
-ssh -o StrictHostKeyChecking=no -i $PRIVATE_KEY $TOMCAT_USER@$TOMCAT_HOST \
-    "sudo systemctl restart tomcat"
+echo "🚀 Deploying WAR to Tomcat via Manager API..."
+curl -T insured-assurance.war "http://$TOMCAT_USER:$TOMCAT_PASS@$TOMCAT_HOST:$TOMCAT_PORT/manager/text/deploy?path=/&update=true"
 
-echo "✅ Deployment completed successfully!"
+echo "✅ Deployment successful!"
