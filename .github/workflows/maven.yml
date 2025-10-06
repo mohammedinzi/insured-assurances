@@ -8,7 +8,7 @@ env:
   AWS_REGION: us-east-1
   S3_BUCKET: insured-assurance-artifacts
   S3_KEY: insured-assurance.war
-  JENKINS_URL: http://107.23.57.176:8080
+  JENKINS_URL: http://3.90.187.93:8080
   JENKINS_USER: admin
   JENKINS_JOB: Test_GithubAction_job
 
